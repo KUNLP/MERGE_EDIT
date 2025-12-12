@@ -1,90 +1,96 @@
-# MEMIT: Mass-Editing Memory in a Transformer
+# MEMIT with Model Merging Framework
 
-Editing thousands of facts into a transformer memory at once.
+다중 지식 편집에서 모델 병합을 통한 성능 개선 연구
 
-<!-- [![Colab MEMIT Demo](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kmeng01/memit/blob/main/notebooks/memit.ipynb) -->
+## 🚀 Quick Start
 
-## Table of Contents
+### 1. 독립적 모델 편집 (MEMIT 환경)
 
-- [Installation](#installation)
-- [MEMIT Algorithm Demo](#memit-algorithm-demo)
-- [Running the Full Evaluation Suite](#running-the-full-evaluation-suite)
-- [Generating Scaling Curves](#generating-scaling-curves)
-- [How to Cite](#how-to-cite)
+여러 규모의 지식을 독립적으로 편집하여 모델을 저장합니다.
 
-## Installation
-
-We recommend `conda` for managing Python, CUDA, and PyTorch; `pip` is for everything else. To get started, simply install `conda` and run:
 ```bash
-CONDA_HOME=$CONDA_HOME ./scripts/setup_conda.sh
+python -u -m falcon.tester --identical_nums 1 1 1 1 1 1 1 1 1 --num_edits_list 20 50 100 250 500 1000 3000 5000 10000
 ```
 
-`$CONDA_HOME` should be the path to your `conda` installation, e.g., `~/miniconda3`.
+**결과**: `edited_models/` 폴더에 편집된 모델들이 저장됩니다.
+- `edited_1_20_1/`, `edited_1_50_1/`, ..., `edited_1_10000_1/`
 
-## MEMIT Algorithm Demo
+### 2. 모델 병합 (Mergekit 환경)
 
-[`notebooks/memit.ipynb`](notebooks/memit.ipynb) demonstrates MEMIT. The API is simple; simply specify a *requested rewrite* of the following form:
+편집된 모델들을 다양한 병합 방법으로 결합합니다.
 
-```python
-request = [
-    {
-        "prompt": "{} plays the sport of",
-        "subject": "LeBron James",
-        "target_new": {
-            "str": "football"
-        }
-    },
-    {
-        "prompt": "{} plays the sport of",
-        "subject": "Michael Jordan",
-        "target_new": {
-            "str": "baseball"
-        }
-    },
-]
-```
-
-Other similar example(s) are included in the notebook.
-
-## Running the Full Evaluation Suite
-
-[`experiments/evaluate.py`](experiments/evaluate.py) can be used to evaluate any method in [`baselines/`](baselines/).
-
-For example:
-```
-python3 -m experiments.evaluate \
-    --alg_name=MEMIT \
-    --model_name=EleutherAI/gpt-j-6B \
-    --hparams_fname=EleutherAI_gpt-j-6B.json \
-    --num_edits=10000 \
-    --use_cache
-```
-Results from each run are stored at `results/<method_name>/run_<run_id>` in a specific format:
+#### 기본 병합 예시
 ```bash
-results/
-|__ MEMIT/
-    |__ run_<run_id>/
-        |__ params.json
-        |__ case_0.json
-        |__ case_1.json
-        |__ ...
-        |__ case_10000.json
+python merge_runner.py --model_dirs edited_2_1500_1 edited_2_1500_2 --merge_methods ties --lambdas 1.6 --densities 0.5
 ```
 
-To summarize the results, you can use [`experiments/summarize.py`](experiments/summarize.py):
+#### 다양한 하이퍼파라미터 탐색
 ```bash
-python3 -m experiments.summarize --dir_name=MEMIT --runs=run_<run1>,run_<run2>
+python merge_runner.py --model_dirs edited_2_25_1 edited_2_25_2 --merge_methods task_arithmetic ties dare_ties dare_linear della della_linear --lambdas 1.1 1.3 1.5 --densities 0.1 0.3 0.5 0.7 0.9 --epsilons 0.1 0.2 0.3 0.4
 ```
 
-Running `python3 -m experiments.evaluate -h` or `python3 -m experiments.summarize -h` provides details about command-line flags.
+**결과**: `merged/` 폴더에 병합된 모델들이 저장됩니다.
+- `edited215001_edited215002_ties_l1.6_d0.5/`
 
-## How to Cite
+### 3. 성능 평가
 
-```bibtex
-@article{meng2022memit,
-  title={Mass Editing Memory in a Transformer},
-  author={Kevin Meng and Sen Sharma, Arnab and Alex Andonian and Yonatan Belinkov and David Bau},
-  journal={arXiv preprint arXiv:2210.07229},
-  year={2022}
-}
+편집 및 병합된 모델의 성능을 측정합니다.
+
+```bash
+python -u -m falcon.tester --identical_nums 1 --num_edits_list 10000 --test_type all
 ```
+
+**결과**: `results/MEMIT/` 폴더에 평가 결과가 저장됩니다.
+
+### 4. 결과 분석
+
+전체 실험 결과를 요약하고 시각화합니다.
+
+```bash
+# 기본 요약
+python -m experiments.summarize --dir_name MEMIT --runs all
+
+# 상세 분석
+python all_summary.py --detailed --analysis
+
+# 시각화 포함
+python all_summary.py --detailed --analysis --plot --plot_output "result.png"
+```
+
+**결과**: 
+- 터미널에 성능 메트릭 테이블 출력
+- `result.png` 시각화 파일 생성
+
+## 📁 주요 폴더 구조
+
+```
+memit/
+├── edited_models/     # 편집된 모델들
+├── merged/           # 병합된 모델들  
+├── results/          # 평가 결과
+├── logs/            # 실행 로그
+└── data/            # 데이터셋
+```
+
+## 🔧 지원하는 병합 방법
+
+- `task_arithmetic`: 기본 태스크 산술
+- `ties`: TIES 방법
+- `dare_ties`: DARE-TIES 방법  
+- `dare_linear`: DARE Linear 방법
+- `della`: DELLA 방법
+- `della_linear`: DELLA Linear 방법
+
+## 📊 평가 메트릭
+
+- **Efficacy**: 편집 효과성
+- **Generalization**: 일반화 성능
+- **Specificity**: 특이성
+- **Fluency**: 유창성
+- **Consistency**: 일관성
+
+## 💡 사용 팁
+
+1. **메모리 절약**: 대규모 편집 시 `--conserve_memory` 옵션 사용
+2. **캐시 활용**: `--use_cache` 옵션으로 재계산 방지
+3. **병합 순서**: 원본 모델과 먼저 병합 후 추가 병합 권장
