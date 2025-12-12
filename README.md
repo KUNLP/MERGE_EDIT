@@ -72,7 +72,7 @@ memit/
 └── data/            # 데이터셋
 ```
 
-## 🔧 지원하는 병합 방법
+## 지원하는 병합 방법
 
 - `task_arithmetic`: 기본 태스크 산술
 - `ties`: TIES 방법
@@ -81,16 +81,10 @@ memit/
 - `della`: DELLA 방법
 - `della_linear`: DELLA Linear 방법
 
-## 📊 평가 메트릭
+## 평가 메트릭
 
 - **Efficacy**: 편집 효과성
 - **Generalization**: 일반화 성능
 - **Specificity**: 특이성
 - **Fluency**: 유창성
 - **Consistency**: 일관성
-
-## 💡 사용 팁
-
-1. **메모리 절약**: 대규모 편집 시 `--conserve_memory` 옵션 사용
-2. **캐시 활용**: `--use_cache` 옵션으로 재계산 방지
-3. **병합 순서**: 원본 모델과 먼저 병합 후 추가 병합 권장
